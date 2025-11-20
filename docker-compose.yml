@@ -1,0 +1,115 @@
+version: "3.8"
+
+services:
+
+  # --------------------
+  # Node Exporter (CPU, RAM, Disk)
+  # --------------------
+  node-exporter:
+    image: prom/node-exporter:v1.10.2
+    container_name: node-exporter
+    restart: unless-stopped
+    network_mode: "host" 
+    pid: "host"
+    volumes:
+      - '/:/host:ro,rslave'
+    command:
+      - '--path.rootfs=/host'
+    #ports:
+    #  - "9100:9100"
+
+  # --------------------
+  # DCGM Exporter (GPU metrics) - CORRECTED
+  # --------------------
+  dcgm-exporter:
+    image: nvidia/dcgm-exporter:4.4.1-4.6.0-distroless
+    container_name: dcgm-exporter
+    restart: unless-stopped
+    # Use simpler 'runtime: nvidia' for local docker-compose
+    runtime: nvidia
+    # !!! network_mode: "host" REMOVED !!!
+    # This allows it to join the default network and be found by Prometheus.
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+    #ports:
+    #  - "9400:9400" # Maps port 9400 to the host, and makes it available on the bridge network
+
+  # --------------------
+  # Prometheus
+  # --------------------
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/rules:/etc/prometheus/rules
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    ports:
+      - "9090:9090"
+    depends_on:
+      - node-exporter
+      - dcgm-exporter
+      - alertmanager
+
+  # --------------------
+  # 2. Alertmanager Service
+  # --------------------
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: alertmanager
+    restart: unless-stopped
+    volumes:
+      # Map the configuration file we generated earlier
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/config.yml
+      # Map the Alertmanager data volume
+      - alertmanager_data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/config.yml'
+      - '--storage.path=/alertmanager'
+    ports:
+      - "9093:9093" # Primary port for Prometheus to talk to Alertmanager
+      - "9999:9091" # Web UI port (optional, but useful)
+    depends_on:
+      - gchat-adapter
+
+
+  gchat-adapter:
+    # --- CRITICAL FIX: Use 'build' instead of 'image' to fix pull access denied error ---
+    build: 
+      context: ./gchat_adapter_build 
+      dockerfile: Dockerfile
+    image: alertmanager-gchat-local:1.0 # Give the built image a name
+    container_name: gchat-adapter
+    restart: unless-stopped
+    environment:
+      # CRITICAL: Replace <YOUR_FULL_GOOGLE_CHAT_WEBHOOK_URL> with your actual webhook.
+      - GOOGLE_CHAT_WEBHOOK_URL=https://chat.googleapis.com/v1/spaces/AAQAtD_SBMQ/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=0IxiKTUGqxk-yQ6OJUyLueNVzvalGRTzL383j13nL2k
+    ports:
+      - "8081:8080"
+
+  # # --------------------
+  # # Grafana
+  # # --------------------
+  # grafana:
+  #   image: grafana/grafana:latest
+  #   container_name: grafana
+  #   volumes:
+  #     # Persistent storage for configuration and user data
+  #     - grafana_data:/var/lib/grafana
+  #     # Automatically set up Prometheus as a data source
+  #     - ./grafana/provisioning/:/etc/grafana/provisioning/
+  #   # Expose port 3000 for the Grafana UI
+  #   ports:
+  #     - "3000:3000"
+  #   restart: unless-stopped
+  #   depends_on:
+  #     - prometheus
+
+volumes:
+  prometheus_data:
+  alertmanager_data:
+#  grafana_data:

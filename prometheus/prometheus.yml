@@ -1,0 +1,49 @@
+global:
+  # Set scrape interval to 5 seconds for responsive system monitoring
+  scrape_interval: 5s
+  # Set a short timeout for reliable, fast scrapes
+  scrape_timeout: 3s
+  # How often to evaluate rules (not strictly necessary here, but good practice)
+  evaluation_interval: 5s
+
+scrape_configs:
+  # ----------------------------------------------------
+  # 1. Prometheus Self-Scrape (Monitoring the Monitor)
+  # ----------------------------------------------------
+  - job_name: 'prometheus'
+    # Scrapes itself via localhost since it's an internal process
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # ----------------------------------------------------
+  # 2. Node Exporter (CPU, RAM, Disk Metrics)
+  # ----------------------------------------------------
+  - job_name: 'node_exporter'
+    static_configs:
+      # need to open port 9100 on the host firewall for this to work
+      # - targets: ['host.docker.internal:9100'] # this did not work
+      - targets: ['ai01.pike-banana.ts.net:9100']
+
+  # ----------------------------------------------------
+  # 3. DCGM Exporter (NVIDIA GPU Metrics)
+  # ----------------------------------------------------
+  - job_name: 'dcgm_exporter'
+    # DCGM Exporter is on the standard Docker bridge network. 
+    # Prometheus uses the service name ('dcgm-exporter') for DNS resolution.
+    static_configs:
+      - targets: ['dcgm-exporter:9400']
+
+
+# --- RULE FILES ---
+# 1. Instructs Prometheus to load all files ending in .yml from the 'rules' directory.
+rule_files:
+  - "rules/*.yml" # <--- This tells Prometheus to load prometheus/rules/disk_space.yml
+
+# --- ALERTING CONFIG ---
+# 2. Instructs Prometheus where to send the alerts (to Alertmanager).
+alerting:
+  alertmanagers:
+    - static_configs:
+        # Use the actual service name or IP of your Alertmanager instance
+        # If running in a Docker network, this is often the service name (e.g., alertmanager:9093)
+      - targets: ['alertmanager:9093'] 

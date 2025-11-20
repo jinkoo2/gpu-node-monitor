@@ -1,0 +1,22 @@
+groups:
+- name: disk_space_alerts
+  rules:
+  - alert: HostOutOfDiskSpace
+    expr: |
+      (
+        node_filesystem_avail_bytes{fstype!=""} / node_filesystem_size_bytes{fstype!=""} * 100
+      ) < 20
+    for: 5m
+    labels:
+      severity: warning
+      team: infrastructure-ops 
+      
+    annotations:
+      summary: 'DISK ALERT: {{ $labels.instance }} - Filesystem {{ $labels.mountpoint }} is critically low, {{ $value | printf "%.2f" }}% free.'
+      description: |
+        The filesystem usage for mountpoint '{{ $labels.mountpoint }}' on instance '{{ $labels.instance }}' 
+        is running low. Available space is currently less than 20%.
+        
+        Value: {{ $value }}% free.
+        
+        Action: Investigate the disk space usage immediately.

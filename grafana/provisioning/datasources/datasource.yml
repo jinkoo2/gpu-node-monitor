@@ -1,0 +1,13 @@
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    # Type must be "prometheus"
+    type: prometheus
+    # The URL uses the service name 'prometheus' defined in docker-compose.yml
+    # Docker's internal DNS handles the resolution.
+    url: http://prometheus:9090
+    access: proxy
+    isDefault: true
+    version: 1
+    editable: true

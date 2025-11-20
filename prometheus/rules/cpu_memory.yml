@@ -1,0 +1,28 @@
+groups:
+- name: HostResourceSaturation
+  rules:
+  - alert: HostHighCpuLoad
+    # Alert if average CPU usage (excluding I/O wait) exceeds 85% for 5 minutes.
+    expr: |
+      100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High CPU Load on {{ $labels.instance }} --> CPU utilization on is consistently above 85% (current value: {{ $value | printf \"%.1f\" }}%). Investigate running processes."
+      description: "CPU utilization on host {{ $labels.instance }} is consistently above 85% (current value: {{ $value | printf \"%.1f\" }}%). Investigate running processes."
+
+  - alert: HostOutOfMemory
+    # Alert if available memory is less than 10% of total memory for 5 minutes.
+    expr: |
+      (
+        (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100
+      ) < 10
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Out Of Memory on {{ $labels.instance }} --> Host {{ $labels.instance }} has less than 10% memory available (current value: {{ $value | printf \"%.1f\" }}% available). Processes may be killed."
+      description: "Host {{ $labels.instance }} has less than 10% memory available (current value: {{ $value | printf \"%.1f\" }}% available). Processes may be killed."
+
+

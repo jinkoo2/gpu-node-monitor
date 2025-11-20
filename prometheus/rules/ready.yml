@@ -1,0 +1,21 @@
+groups:
+- name: TestAlerts
+  rules:
+  - alert: ReadyForAlerting
+    expr: vector(1)
+    for: 1s # Fire after 1 second
+    labels:
+      severity: info
+      team: infrastructure-ops # Must match the team label in alertmanager.yml
+      # ------------------------------------------------------------------
+      # FIX: The instance label must be added statically here,
+      # since 'vector(1)' provides no labels dynamically.
+      # Use a value that clearly indicates this is the source.
+      # ------------------------------------------------------------------
+      instance: 'ai01' # <--- STATICALLY ADDED LABEL
+      service: 'prometheus-monitoring' # <--- Added for better context
+      cluster: 'ai-computers'      # <--- Added for better context
+      # ------------------------------------------------------------------
+    annotations:
+      summary: "Prometheus Test Alert: The system is ready for alerting on {{ $labels.instance }}"
+      description: "This alert is configured to always fire to test the full alerting pipeline."

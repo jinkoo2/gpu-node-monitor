@@ -1,0 +1,24 @@
+groups:
+- name: NetworkTrafficAlerts
+  rules:
+  - alert: HighIncomingNetworkTraffic
+    # Alert if the total incoming network traffic exceeds 5 MB/s for 5 minutes.
+    expr: |
+      sum by (instance) (rate(node_network_receive_bytes_total[5m])) / (1024 * 1024) > 5
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "NETWORK ALERT: Incoming traffic on {{ $labels.instance }} is excessive (> 5 MB/s) --> Incoming network traffic is spiking at {{ $value | printf \"%.2f\" }} MB/s. This could indicate a DDoS attack, a runaway client, or an unexpected data transfer."
+      description: "Incoming network traffic is spiking at {{ $value | printf \"%.2f\" }} MB/s. This could indicate a DDoS attack, a runaway client, or an unexpected data transfer."
+
+  - alert: HighOutgoingNetworkTraffic
+    # Alert if the total outgoing network traffic exceeds 5 MB/s for 5 minutes.
+    expr: |
+      sum by (instance) (rate(node_network_transmit_bytes_total[5m])) / (1024 * 1024) > 5
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "NETWORK ALERT: Outgoing traffic on {{ $labels.instance }} is elevated (> 5 MB/s) --> Outgoing network traffic is spiking at {{ $value | printf \"%.2f\" }} MB/s. This could indicate a data leak, a logging explosion, or an unexpected backup process."
+      description: "Outgoing network traffic is spiking at {{ $value | printf \"%.2f\" }} MB/s. This could indicate a data leak, a logging explosion, or an unexpected backup process."

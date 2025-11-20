@@ -1,0 +1,27 @@
+global:
+  resolve_timeout: 5m
+
+# --- RECEIVERS ---
+receivers:
+  - name: 'default-receiver'
+  - name: 'google-chat-alerts'
+    # Change the receiver type from 'googlechat_configs' (if you were using that)
+    # to 'webhook_configs' and point it at the new adapter service.
+    webhook_configs:
+      - url: 'http://gchat-adapter:8080/webhook' # CRITICAL CHANGE
+        send_resolved: true
+        # The adapter handles templating, so no custom template is needed here.
+
+# --- ROUTING ---
+route:
+  group_by: ['alertname', 'cluster', 'service', 'instance']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 3h
+  receiver: 'default-receiver' # Catches everything not explicitly routed
+  
+  routes:
+    # Route for all 'infrastructure-ops' alerts to the Google Chat receiver
+    - match:
+        team: 'infrastructure-ops'
+      receiver: 'google-chat-alerts'

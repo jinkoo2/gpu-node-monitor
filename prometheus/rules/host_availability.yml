@@ -1,0 +1,23 @@
+groups:
+- name: HostAvailability
+  rules:
+  - alert: HostDown-NodeExporter
+    # Alert if node_exporter is not reachable for more than 60 seconds.
+    expr: up{job="node_exporter"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Host Down: {{ $labels.instance }} --> Node Exporter on {{ $labels.instance }} has been down for more than 1 minute."
+      description: "Node Exporter on {{ $labels.instance }} has been down for more than 1 minute."
+
+  - alert: HostSystemUptimeLow
+    # Alert if the host has rebooted within the last 15 minutes.
+    expr: |
+      (time() - node_boot_time_seconds) < (15 * 60)
+    for: 0m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Host Rebooted: {{ $labels.instance }} --> Host {{ $labels.instance }} has recently rebooted (Uptime: {{ $value | humanizeDuration }})."
+      description: "Host {{ $labels.instance }} has recently rebooted (Uptime: {{ $value | humanizeDuration }})."
